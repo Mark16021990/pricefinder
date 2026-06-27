@@ -29,7 +29,6 @@ class PriceRepository {
     private val sources: List<PriceSource> = listOf(
         WildberriesSource(client, json),
         OzonSource(ozonClient, json),
-        YandexMarketSource(client, json),
         MegamarketSource(client, json),
         AvitoSource(client, json),
         AliexpressSource(client, json)
@@ -57,7 +56,7 @@ class PriceRepository {
                         }
                 }
             }.flatMap { it.await() }
-        }.sortedBy { it.price }
+        }.filter { isRealProduct(it) }.sortedBy { it.price }
 
         val prices = all.map { it.price }
         SearchResult(
@@ -67,6 +66,24 @@ class PriceRepository {
             maxPrice = prices.maxOrNull() ?: 0.0,
             sourceErrors = errors
         )
+    }
+
+    private val junkWords = listOf(
+        "marketfront", "speculation", "velocity", "distributionbanner",
+        "header", "footer", "banner", "способ доставки", "способы оплаты",
+        "со страховкой", "способ оплаты", "доставка", "оплата", "гарантия",
+        "бренд", "магазин", "оригинал", "спешл", "отправка", "самовывоз",
+        "корзина", "избранное", "каталог", "войти", "регистрация"
+    )
+
+    private fun isRealProduct(item: PriceItem): Boolean {
+        val name = item.name.trim()
+        if (name.length < 5) return false
+        if (name.startsWith("@") || name.contains("/")) return false
+        val lower = name.lowercase()
+        if (name.length < 25 && junkWords.any { lower == it || lower.startsWith("$it ") }) return false
+        if (Regex("^[A-Za-z@/]+$").matches(name)) return false
+        return true
     }
 
     private fun friendlyError(e: Throwable): String {

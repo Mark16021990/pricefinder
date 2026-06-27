@@ -39,6 +39,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private const val PAGE_SIZE = 10
+
 private fun money(v: Double): String =
     NumberFormat.getInstance(Locale("ru")).format(v.toLong()) + " ₽"
 
@@ -49,6 +51,12 @@ fun AppScreen(vm: SearchViewModel = viewModel()) {
     val context = LocalContext.current
 
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
+    var visibleCounts by remember {
+        mutableStateOf<Map<com.example.pricefinder.data.Source, Int>>(emptyMap())
+    }
+    androidx.compose.runtime.LaunchedEffect(state.result) {
+        visibleCounts = emptyMap()
+    }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -147,7 +155,31 @@ fun AppScreen(vm: SearchViewModel = viewModel()) {
         }
 
         state.result?.items?.let { list ->
-            items(list) { item -> PriceRow(item) }
+            val grouped = list.groupBy { it.source }
+            grouped.forEach { (source, products) ->
+                item(key = "h_${source.name}") {
+                    Spacer(Modifier.height(12.dp))
+                    Text("${source.label}  (${products.size})",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(4.dp))
+                }
+                val shown = visibleCounts[source] ?: PAGE_SIZE
+                items(products.take(shown), key = { it.id }) { PriceRow(it) }
+                if (products.size > shown) {
+                    item(key = "m_${source.name}") {
+                        OutlinedButton(
+                            onClick = {
+                                visibleCounts = visibleCounts.toMutableMap().apply {
+                                    this[source] = shown + PAGE_SIZE
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) { Text("Показать ещё (${products.size - shown})") }
+                    }
+                }
+            }
         }
     }
 }
@@ -185,7 +217,14 @@ private fun ResultHeader(result: SearchResult) {
 
 @Composable
 private fun PriceRow(item: PriceItem) {
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    val context = LocalContext.current
+    Card(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(item.url)))
+            }
+        }
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
