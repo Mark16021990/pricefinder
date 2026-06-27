@@ -73,7 +73,7 @@ fun AppScreen(vm: SearchViewModel = viewModel()) {
             Text("Поиск цены товара",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold)
-            Text("Wildberries + Ozon",
+            Text("Wildberries · Ozon · Маркет · Мегамаркет",
                 style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(16.dp))
 

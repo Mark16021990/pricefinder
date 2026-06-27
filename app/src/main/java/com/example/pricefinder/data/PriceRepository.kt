@@ -28,7 +28,9 @@ class PriceRepository {
 
     private val sources: List<PriceSource> = listOf(
         WildberriesSource(client, json),
-        OzonSource(ozonClient, json)
+        OzonSource(ozonClient, json),
+        YandexMarketSource(client, json),
+        MegamarketSource(client, json)
     )
 
     suspend fun search(name: String, article: String, model: String): SearchResult =

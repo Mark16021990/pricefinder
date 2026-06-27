@@ -48,7 +48,9 @@ data class OzonResponse(
 // ============ UI-facing models ============
 enum class Source(val label: String) {
     WILDBERRIES("Wildberries"),
-    OZON("Ozon")
+    OZON("Ozon"),
+    YANDEX_MARKET("Яндекс Маркет"),
+    MEGAMARKET("Мегамаркет")
 }
 
 data class PriceItem(
