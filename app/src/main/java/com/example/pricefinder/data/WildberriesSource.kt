@@ -16,7 +16,7 @@ class WildberriesSource(
     override suspend fun search(query: String): List<PriceItem> {
         val q = URLEncoder.encode(query, "UTF-8")
         val url = "https://search.wb.ru/exactmatch/ru/common/v9/search" +
-            "?query=$q&resultset=catalog&limit=50&sort=popular" +
+            "?query=$q&resultset=catalog&limit=100&sort=popular" +
             "&dest=-1257786&lang=ru&curr=rub&spp=30"
 
         val request = Request.Builder()

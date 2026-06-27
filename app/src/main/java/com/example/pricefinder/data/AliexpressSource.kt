@@ -42,7 +42,7 @@ class AliexpressSource(
             .filter { it in 10.0..5000000.0 }
             .toList()
 
-        val count = minOf(titles.size, prices.size, 30)
+        val count = minOf(titles.size, prices.size, 100)
         for (i in 0 until count) {
             items += PriceItem(
                 id = "ali_$i",

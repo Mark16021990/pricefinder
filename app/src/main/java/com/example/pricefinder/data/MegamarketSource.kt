@@ -24,7 +24,7 @@ class MegamarketSource(
         val url = "https://megamarket.ru/api/mobile/v1/catalogService/search/get"
 
         val payload = """
-            {"requestVersion":10,"query":"$query","limit":30,"offset":0,
+            {"requestVersion":10,"query":"$query","limit":100,"offset":0,
             "isMultiCategorySearch":true,"searchByOriginalQuery":false,
             "selectedSuggestParams":[],"sortType":1}
         """.trimIndent()
