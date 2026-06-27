@@ -50,7 +50,9 @@ enum class Source(val label: String) {
     WILDBERRIES("Wildberries"),
     OZON("Ozon"),
     YANDEX_MARKET("Яндекс Маркет"),
-    MEGAMARKET("Мегамаркет")
+    MEGAMARKET("Мегамаркет"),
+    AVITO("Авито"),
+    ALIEXPRESS("AliExpress")
 }
 
 data class PriceItem(

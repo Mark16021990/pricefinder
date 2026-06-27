@@ -30,7 +30,9 @@ class PriceRepository {
         WildberriesSource(client, json),
         OzonSource(ozonClient, json),
         YandexMarketSource(client, json),
-        MegamarketSource(client, json)
+        MegamarketSource(client, json),
+        AvitoSource(client, json),
+        AliexpressSource(client, json)
     )
 
     suspend fun search(name: String, article: String, model: String): SearchResult =
