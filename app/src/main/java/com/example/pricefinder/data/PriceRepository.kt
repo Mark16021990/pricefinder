@@ -29,6 +29,7 @@ class PriceRepository {
     private val sources: List<PriceSource> = listOf(
         WildberriesSource(client, json),
         OzonSource(ozonClient, json),
+        YandexMarketSource(client, json),
         MegamarketSource(client, json),
         AvitoSource(client, json),
         AliexpressSource(client, json)
