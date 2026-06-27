@@ -5,20 +5,12 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URLEncoder
 
-/**
- * Ozon has no public search API. This uses the internal "composer-api"
- * endpoint that powers the website. It returns a map of widget states,
- * each a JSON string that must be parsed separately. The structure is
- * undocumented and changes often, so parsing is fully defensive: any
- * failure yields an empty list rather than crashing the whole search.
- */
 class OzonSource(
     private val client: OkHttpClient,
     private val json: Json
@@ -27,17 +19,21 @@ class OzonSource(
     override val source = Source.OZON
 
     override suspend fun search(query: String): List<PriceItem> {
-        val q = URLEncoder.encode(query, "UTF-8")
         val path = URLEncoder.encode("/search/?text=$query&from_global=true", "UTF-8")
         val url = "https://api.ozon.ru/composer-api.bx/page/json/v2?url=$path"
 
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", "Mozilla/5.0 (Android) PriceFinder/2.0")
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+            )
             .header("Accept", "application/json")
             .build()
 
         val body = client.newCall(request).execute().use { resp ->
+            if (resp.code in 300..399) return emptyList()
             if (!resp.isSuccessful) error("HTTP ${resp.code}")
             resp.body?.string().orEmpty()
         }
@@ -62,15 +58,12 @@ class OzonSource(
     }
 
     private fun parseItem(obj: JsonObject): PriceItem? {
-        // Ozon item shape varies; pull fields opportunistically.
         val sku = obj["sku"]?.jsonPrimitive?.contentOrNull
             ?: obj["id"]?.jsonPrimitive?.contentOrNull
             ?: return null
 
-        // Title is often nested in mainState text atoms.
         val title = findText(obj, listOf("title", "name", "text")) ?: return null
 
-        // Price strings look like "1 299 ₽" — strip to digits.
         val priceText = findText(obj, listOf("price", "finalPrice", "cardPrice"))
         val price = priceText
             ?.filter { it.isDigit() }
@@ -89,7 +82,6 @@ class OzonSource(
         )
     }
 
-    /** Shallow recursive search for the first string under any of the keys. */
     private fun findText(obj: JsonObject, keys: List<String>, depth: Int = 0): String? {
         if (depth > 4) return null
         for ((k, v) in obj) {

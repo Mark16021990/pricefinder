@@ -21,16 +21,16 @@ class PriceRepository {
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
+    private val ozonClient = client.newBuilder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
+
     private val sources: List<PriceSource> = listOf(
         WildberriesSource(client, json),
-        OzonSource(client, json)
+        OzonSource(ozonClient, json)
     )
 
-    /**
-     * Builds a query from name + article + model, then searches every source
-     * in parallel. Sources that fail are reported in sourceErrors but do not
-     * abort the others.
-     */
     suspend fun search(name: String, article: String, model: String): SearchResult =
         searchByQuery(
             listOf(name, article, model)
@@ -48,24 +48,31 @@ class PriceRepository {
                 async {
                     runCatching { src.search(query) }
                         .getOrElse {
-                            errors += "${src.source.label}: ${it.message ?: "ошибка"}"
+                            errors += "${src.source.label}: ${friendlyError(it)}"
                             emptyList()
                         }
                 }
             }.flatMap { it.await() }
         }.sortedBy { it.price }
 
-        if (all.isEmpty()) {
-            return@withContext SearchResult(emptyList(), 0.0, 0.0, 0.0, errors)
-        }
-
         val prices = all.map { it.price }
         SearchResult(
             items = all,
-            averagePrice = prices.average(),
-            minPrice = prices.min(),
-            maxPrice = prices.max(),
+            averagePrice = if (prices.isEmpty()) 0.0 else prices.average(),
+            minPrice = prices.minOrNull() ?: 0.0,
+            maxPrice = prices.maxOrNull() ?: 0.0,
             sourceErrors = errors
         )
+    }
+
+    private fun friendlyError(e: Throwable): String {
+        val msg = e.message ?: "ошибка"
+        return when {
+            msg.contains("429") -> "слишком много запросов, повторите позже"
+            msg.contains("redirect", ignoreCase = true) ||
+                msg.contains("follow-up", ignoreCase = true) -> "источник недоступен"
+            msg.contains("timeout", ignoreCase = true) -> "превышено время ожидания"
+            else -> msg
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.pricefinder.data
 
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -20,13 +21,35 @@ class WildberriesSource(
 
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", "Mozilla/5.0 (Android) PriceFinder/2.0")
-            .header("Accept", "*/*")
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+            )
+            .header("Accept", "application/json, text/plain, */*")
+            .header("Accept-Language", "ru-RU,ru;q=0.9")
+            .header("Origin", "https://www.wildberries.ru")
+            .header("Referer", "https://www.wildberries.ru/")
             .build()
 
-        val body = client.newCall(request).execute().use { resp ->
-            if (!resp.isSuccessful) error("HTTP ${resp.code}")
-            resp.body?.string().orEmpty()
+        var body = ""
+        var attempt = 0
+        while (true) {
+            attempt++
+            val code = client.newCall(request).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    body = resp.body?.string().orEmpty()
+                    0
+                } else {
+                    resp.code
+                }
+            }
+            if (code == 0) break
+            if (code == 429 && attempt < 3) {
+                delay(1200L * attempt)
+                continue
+            }
+            error("HTTP $code")
         }
 
         val parsed = json.decodeFromString<WbSearchResponse>(body)
